@@ -1,0 +1,365 @@
+---
+title: "data_source"
+author: "Keach Murakami"
+date: "6/29/2018"
+output: html_document_basic
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, results = "hold")
+```
+
+
+## 単一葉データ
+
+- *Physiol Plant* data
+- FluorCam vs PRI data
+
+```{r, eval = F}
+# load("data/pri_singles.rdata") # per batch
+# load("~/Dropbox/Publish/Regular_006/data/pri_single.rdata") # per leaf
+load("~/Dropbox/Publish/Regular_006/data/pri_stat.rdata") # per expt
+# load("data/pam_singles.rdata") # per leaf
+load("~/Dropbox/Publish/Regular_006/data/pam_stat.rdata") # per expt
+load("~/Dropbox/Publish/Regular_006/data/cv_data.rdata")
+
+cv_data %<>% mutate(time = parse_number(time))
+
+overall_regressions <-
+  cv_data %>%
+  split(.$time) %>%
+  map_df(.id = "time", function(splitted){
+    reg_per_time_pri <-
+      splitted %>%
+      ungroup %>%
+      {cor.test(.$Y2, .$pri)}
+    reg_per_time_dpri <-
+      splitted %>%
+      ungroup %>%
+      {cor.test(.$Y2, .$dpri)}
+    
+    r2s <- c(deparse(sprintf("%.2f", reg_per_time_pri$estimate)),
+             deparse(sprintf("%.2f", reg_per_time_dpri$estimate)))
+    
+    tibble(
+      by = c("pri", "dpri"),
+      r = r2s,
+      p_value = c(reg_per_time_pri$p.value, reg_per_time_dpri$p.value)
+    )
+  }) %>%
+  mutate(signif = if_else(p_value < 0.05, "'*'", "' '")) %>% 
+  mutate(signif = if_else(p_value < 0.01, "'**'", signif)) %>% 
+  mutate(signif = if_else(p_value < 0.001, "'***'", signif)) %>%
+  mutate(time = as.numeric(time),
+         annotates = paste0("italic(R)~'='~", r, "*", signif),
+         time2 = time,
+         time = factor(paste0(time, " min")),
+         time = fct_reorder(time, time2)
+  ) %>%
+  split(.$by)
+
+cv_data %<>%
+  mutate(time2 = time,
+         time = factor(paste0(time, " min")),
+         time = fct_reorder(time, time2))
+
+
+cv_split_time <-
+  cv_data %>%
+  split(.$time) %>%
+  map(ungroup)
+
+cv_result <-
+  cv_split_time %>%
+  map_df(.id = "time_split", function(cv_per_time){
+    cv_per_time$expt %>%
+      unique %>%
+      map(function(expt_id){
+        train <- 
+          cv_per_time %>%
+          filter(expt != expt_id)
+        test <- 
+          cv_per_time %>%
+          filter(expt == expt_id)
+        list(train = train, test = test)
+      }) %>%
+      map_df(function(lists){
+        train_model_pri <- 
+          lists$train %>%
+          lm(data = ., Y2 ~ pri)
+        
+        p_pri <-
+          train_model_pri %>%
+          tidy %>%
+          .$p.value %>%
+          .[2]
+        
+        cv_pri <-
+          modelr::add_predictions(data = lists$test, model = train_model_pri) %>%
+          mutate(MAE = modelr::mae(train_model_pri, lists$test),
+                 R2 = modelr::rsquare(train_model_pri, lists$test),
+                 p_value = p_pri,
+                 RMSE = modelr::rmse(train_model_pri, lists$test),
+                 by = "pri")
+        
+        train_model_dpri <- 
+          lists$train %>%
+          lm(data = ., Y2 ~ dpri)
+        
+        p_dpri <-
+          train_model_dpri %>%
+          tidy %>%
+          .$p.value %>%
+          .[2]
+        
+        cv_dpri <-
+          modelr::add_predictions(data = lists$test, model = train_model_dpri) %>%
+          mutate(MAE = modelr::mae(train_model_dpri, lists$test),
+                 R2 = modelr::rsquare(train_model_dpri, lists$test),
+                 p_value = p_dpri,
+                 RMSE = modelr::rmse(train_model_dpri, lists$test),
+                 by = "dpri")
+        
+        bind_rows(cv_pri, cv_dpri)
+      })
+  }) %>%
+  mutate(time_split = parse_number(time_split))
+
+cv_formula <-
+  cv_split_time %>%
+  map_df(.id = "time_split", function(cv_per_time){
+    cv_per_time$expt %>%
+      unique %>%
+      map_df(.id = "expt", function(expt_id){
+        cv_per_time %>%
+          filter(expt != expt_id) %>%
+          lm(data = ., Y2 ~ dpri) %>%
+          tidy %>%
+          transmute(expt = expt_id, term, coef = estimate) %>%
+          spread(term, coef) %>%
+          mutate(regression = paste0("italic(Y)[II]~'='~", deparse(sprintf("%.1f", dpri)), "%*%Delta*'PRI'+", deparse(sprintf("%.3f", `(Intercept)`))))
+      })
+  })
+
+pri_data <- 
+  pri_stat %>%
+  dplyr::filter(method == "mean", pixels == 1600, time < 49)
+
+pam_data <-
+  pam_stat %>%
+  dplyr::filter(time < 47)
+
+single_leaf_dataset <- list(PRI = pri_data, PAM = pam_data, CV = cv_result)
+
+write_rds(single_leaf_dataset, path = "~/Dropbox/Symp/IHC2018/slide/data/single.rdata")
+```
+
+
+## 複数葉データ
+
+- 農業気象2018データ
+- 論文書いてないなぁ
+
+```{r, eval = F}
+update_data <- FALSE
+library(fudukue)
+library(data.table)
+library(lubridate)
+source("~/Dropbox/Symp/AgrMet2018/slide/data/data_load.R")
+source("~/Dropbox/Symp/IHC2018/slide/data/data_visualize_multi.R")
+
+multi <- NULL
+
+multi_merge <-
+  function(list_plots, annotates = NULL, vertical_reorder = F){
+    up <- 2; lw <- 1
+    if(vertical_reorder){
+      up <- 1; lw <- 2
+    }
+    if(length(annotates) == 0){
+      upper <- list_plots[[up]] + theme(axis.text.x = element_blank()) # Y2
+      lower <- list_plots[[lw]] + guides(col = F) + labs(caption = "Murakami & Ibaraki (unpublished data)")# PPFD
+    } else {
+      upper <- list_plots[[up]] + theme(axis.text.x = element_blank()) + annotates# Y2
+      lower <- list_plots[[lw]] + guides(col = F) + annotates + labs(caption = "Murakami & Ibaraki (unpublished data)")# PPFD
+    }
+    egg::ggarrange(upper, lower, padding = unit(0.1, "line"))
+  }
+
+multi$y2_ppfd <-
+  list(pre = multi_merge(ppfd_y2_pre_drought),
+       stop = multi_merge(ppfd_y2_pre_drought, stop_water_note[1:3]),
+       during = multi_merge(ppfd_y2_dur_drought, stop_water_note[1:3]),
+       restart = multi_merge(ppfd_y2_dur_drought, stop_water_note[1:4]),
+       all = multi_merge(ppfd_y2_post_drought, stop_water_note[1:4]),
+       all_sm = multi_merge(ppfd_y2_post_drought, c(geom_smooth(se = F), stop_water_note[1:4])))
+
+multi$etr <- actual_etr
+
+multi$y2_pri <-
+  list(sub = multi_merge(y2_pri_sub, stop_water_note[c(1, 2, 4)], vertical_reorder = T),
+       ampm = multi_merge(y2_pri_ampm, stop_water_note[c(1, 2, 4)], vertical_reorder = T),
+       ampm_arrow = multi_merge(y2_pri_ampm_arrow, stop_water_note[c(1, 2, 4)], vertical_reorder = T))
+
+multi$y2_vs_pri <-
+  list(wet = y2_pri_scat_wet + labs(caption = "Murakami & Ibaraki (unpublished data)"),
+       all =  y2_pri_scat_all + labs(caption = "Murakami & Ibaraki (unpublished data)"))
+
+write_rds(multi, "slide/data/multi_figure.rdata")
+```
+
+
+```{r}
+single_leaf_dataset <- 
+  read_rds(path = "~/Dropbox/Symp/IHC2018/slide/data/single.rdata")
+
+singles <- NULL
+
+single_colorset <-
+    scale_color_gradient2(low = gradient_color_low,
+                          mid = gradient_color_mid,
+                          high = gradient_color_high, midpoint = 1000,
+                          guide = guide_colorbar(limits = c(-100, 2100), breaks = c(500, 1000, 1500), 
+                                                 barheight = rel(5), frame.colour = "black", ticks.colour = "black"))
+
+
+singles$pam <-
+  single_leaf_dataset$PAM %>%
+  ggplot(aes(time, Y2_mean, col = PPFD, group = PPFD)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = Y2_mean - Y2_sd, ymax = Y2_mean + Y2_sd)) +
+  geom_line() +
+  facet_grid(~expt) +
+  single_colorset +
+  theme(legend.position = c(1, 0), legend.justification = c(1, 0), legend.background = element_blank(),
+        legend.title = element_text(colour = "white"), legend.text = element_text(colour = "white")) +
+  labs(title = expression(Y[II*" (quantum yield of PSII) "]*"after dark-light transition"),
+       x = "Time [min]", y = expression(Y[II]),
+       caption = "Means ± SDs (n = 3–4), Murakami & Ibaraki (2018; Physiol Plant)")
+# 
+singles$pri <-
+  single_leaf_dataset$PRI %>%
+  ggplot(aes(time, pri, col = PPFD, group = PPFD)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(~expt) +
+  labs(title = expression("PRI after dark-light transition"),
+       x = "Time [min]", y = expression(Delta*"PRI"),
+       caption = "Means ± SDs (n = 3–4), Murakami & Ibaraki (2018; Physiol Plant)")
+
+dpri_set <-
+  list(
+    geom_point(),
+    geom_errorbar(aes(ymin = dpri_mean - dpri_sd, ymax = dpri_mean + dpri_sd), alpha = .2),
+    geom_line(),
+    facet_grid(~expt),
+    single_colorset,
+    theme(legend.position = c(1, 0), legend.justification = c(1, 0), legend.background = element_blank(),
+          legend.title = element_text(colour = "white"), legend.text = element_text(colour = "white")),
+    ylim(c(-.04, 0.007)),
+    labs(title = expression(Delta*"PRI"[" (Change in PRI) "]*"after dark-light transition"),
+        x = "Time [min]", y = expression(Delta*"PRI"),
+        caption = "Means ± SDs (n = 3–4), Murakami & Ibaraki (2018; Physiol Plant)"))
+  
+singles$dpri <-
+  single_leaf_dataset$PRI %>%
+  ggplot(aes(time, dpri_mean, col = PPFD, group = PPFD)) +
+  dpri_set
+
+singles$dpri_high <-
+  single_leaf_dataset$PRI %>%
+  ungroup %>%
+  mutate(dpri_mean = if_else(PPFD < 600, as.numeric(NA), dpri_mean),
+         dpri_sd = if_else(PPFD < 600, as.numeric(NA), dpri_sd)) %>%
+  ggplot(aes(time, dpri_mean, col = PPFD, group = PPFD)) +
+  dpri_set
+
+
+singles$dpri_low <-
+  single_leaf_dataset$PRI %>%
+  ungroup %>%
+  mutate(dpri_mean = if_else(PPFD > 600, as.numeric(NA), dpri_mean),
+         dpri_sd = if_else(PPFD > 600, as.numeric(NA), dpri_sd)) %>%
+  ggplot(aes(time, dpri_mean, col = PPFD, group = PPFD)) +
+  dpri_set
+
+
+singles$merge <-
+  bind_rows(mutate(single_leaf_dataset$PRI, mean = dpri_mean, sd = dpri_sd, variable = "Delta*PRI"),
+            mutate(single_leaf_dataset$PAM, mean = Y2_mean, sd = Y2_sd, variable = "Y[II]")) %>%
+  ungroup %>%
+  mutate(expt = str_replace(expt, " ", "~")) %>%
+  ggplot(aes(time, mean, col = PPFD, group = PPFD)) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), alpha = .2) +
+  geom_point() +
+  geom_line() +
+  facet_grid(variable ~ expt, scale = "free", labeller = label_parsed, switch = "y") +
+  single_colorset +
+  guides(col = F) +
+  labs(x = "Time [min]", y = NULL,
+       caption = "Means ± SDs (n = 3–4), Murakami & Ibaraki (2018; Physiol Plant)")
+
+
+singles$reg <-
+  single_leaf_dataset$CV %>%
+  filter(by == "dpri") %>%
+  split(.$time_split) %>%
+  # .[c(1:2, 15)] %>%
+  map(function(.tbl){
+    
+    r2 <- round(.tbl$R2[1], 3)
+    p_value <- round(.tbl$p_value[1], 3)
+    
+    .tbl %>%
+      ggplot(aes(dpri, Y2, col = PPFD, shape = expt)) +
+      theme(legend.position = c(.05, .05), legend.justification = c(0, 0), legend.background = element_blank(),
+            legend.text = element_text(colour = "white"), legend.title = element_text(colour = "white")) +
+      geom_point(col = "grey75", size = 3.5) +
+      geom_point(size = 3) +
+      geom_smooth(method = "lm", se = F, col = "gray", aes(group = 1), linetype = 3) +
+      single_colorset +
+      annotate("text", x = -.04, y = .8, hjust = 0, vjust = 1, size = 9,
+               label = paste0(.tbl$time_split[1], " min"), col = "white") +
+      # annotate("text", x = -.04, y = .75, hjust = 0, vjust = 1, size = 9,
+      #          label = str_glue("R-squared: {r2}"), col = "white") +
+      # annotate("text", x = -.04, y = .70, hjust = 0, vjust = 1, size = 9,
+      #          label = str_glue("P-value: {p_value}"), col = "white") +
+      lims(x = c(-.04, .005), y = c(0, .8)) +
+      guides(shape = FALSE) +
+      labs(x = expression(Delta*"PRI"), y = expression(Y[II]),
+           caption = "Murakami & Ibaraki (2018; Physiol Plant)")
+  })
+
+library(gganimate)
+
+singles$anm <-
+  single_leaf_dataset$CV %>%
+  filter(by == "dpri") %>%
+  ggplot(aes(dpri, Y2, col = PPFD, shape = expt)) +
+  theme(legend.position = c(.05, .05), legend.justification = c(0, 0), legend.background = element_blank(),
+        legend.text = element_text(colour = "white"), legend.title = element_text(colour = "white")) +
+  geom_point(col = "grey75", size = 3.5) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", se = F, col = "gray", aes(group = 1), linetype = 3) +
+  single_colorset +
+  # annotate("text", x = -.04, y = .8, hjust = 0, vjust = 1, size = 9,
+  #          label = paste0("{frame_time}", " min"), col = "white") +
+  # annotate("text", x = -.04, y = .75, hjust = 0, vjust = 1, size = 9,
+  #          label = str_glue("R-squared: {r2}"), col = "white") +
+  # annotate("text", x = -.04, y = .70, hjust = 0, vjust = 1, size = 9,
+  #          label = str_glue("P-value: {p_value}"), col = "white") +
+  lims(x = c(-.04, .005), y = c(0, .8)) +
+  guides(shape = FALSE) +
+  transition_time(time_split) + 
+  labs(title = '{round(frame_time,1)}: min',
+       x = "\u0394PRI", y = "Y\u2082",
+       caption = "Murakami & Ibaraki (2018; Physiol Plant)")
+
+write_rds(singles, "~/Dropbox/Symp/IHC2018/slide/data/single_figure.rdata")
+```
+
+## Session information
+
+```{r}
+devtools::session_info()
+```

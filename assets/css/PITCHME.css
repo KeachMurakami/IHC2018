@@ -1,0 +1,78 @@
+/* layout */
+
+.reveal .slides {
+  line-height: 1; /* reduce distance between lines*/
+  height: 100% !important;
+  top: 0 !important;
+  margin-top: 0 !important;
+  width: 90% !important;
+  left: 5%;
+  margin-left: 0;
+  font-weight: inherit;
+}
+.reveal .slides>section {
+  min-height: 90% !important;
+  top: auto
+  min-width: 90% !important;
+  left: 0 !important;
+}
+.reveal .slides>section>section {
+  min-height: 90% !important;
+  top: auto
+  min-width: 90% !important;
+  left: 0 !important;
+}
+
+
+/* grids*/
+
+.reveal .slides section .column1 {
+  float: left;
+  width: 49%;
+}
+.reveal .slides section .column2 {
+  float: right;
+  width: 49%;
+}
+
+.reveal .slides section .column_left40 {
+  float: left;
+  width: 42%;
+}
+.reveal .slides section .column_right60 {
+  float: right;
+  width: 58%;
+}
+
+/* image */
+
+.reveal section img {
+  border: 0;
+  box-shadow: none;
+  margin: 1px;
+}
+
+
+/* text */
+.reveal orange {
+  color: orange;
+}
+.reveal aqua {
+  color: #66bbff;
+}
+.reveal sup {
+  font-size: 0.6em;
+  vertical-align: sup;
+}
+.reveal sub {
+  font-size: 0.6em;
+  vertical-align: sub;
+}
+.reveal micro {
+  font-size: 0.5em;
+  vertical-align: bottom;
+}
+.reveal small {
+  font-size: 0.6em;
+  vertical-align: middle;
+}

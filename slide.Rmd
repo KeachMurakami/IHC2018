@@ -1,0 +1,137 @@
+```{r eval = F, include = F}
+knitr::knit(input = "slide.Rmd", output = "PITCHME.md")
+
+system("
+git add PITCHME.md
+git add assets/css/PITCHME.css
+git commit -m 'update'
+git push -u origin master
+")
+# https://gitpitch.com/KeachMurakami/IHC2018#/
+# http://0.0.0.0:9000/gitpitch/desktop
+# docker run -it -v ~/Dropbox/Symp/IHC2018:/repo -p 9000:9000 store/gitpitch/desktop:pro
+```
+
+```{r eval = TRUE, include = F}
+ready <- T
+eval_fig <- F
+update_data <- F
+
+child <- "slide_pitch.Rmd"
+
+library(pri)
+library(plotly)
+library(yose)
+library(htmltools)
+# library(cowplot)
+
+yose::set_reveal_hooks()
+opts_chunk$set(fig.width = 10, fig.height = 7, dpi = 100,
+               float = F, cash = T, include = FALSE)
+
+out_slide <- opts_knit$get("rmarkdown.pandoc.to") == "revealjs"
+
+ection_background_color <- "#778899"
+subsection_background_color <- scales::muted("#87CEEB")
+pfd_font <- "HiraKakuPro-W3"
+font_plot <- "HiraKakuPro-W3"
+
+size_legend <- 11
+
+# theme_set(
+#   theme_dark(base_size = 20, base_family = "HiraKakuProN-W3") +
+#   theme(text = element_text(colour = "white"),
+#         legend.background = element_rect(fill = "black"),
+#         plot.background = element_rect(fill = "black"),
+#         panel.background = element_rect(fill = "grey25"),
+#         strip.background = element_rect(fill = "black"),
+#         title = element_text(size = rel(.75)),
+#         strip.placement = "outside",
+#         legend.text = element_text(size = size_legend)))
+
+theme_set(
+  theme_dark(base_size = 20, base_family = "HiraKakuProN-W3") +
+  theme(legend.background = element_rect(fill = "white"),
+        plot.background = element_blank(),
+        panel.background = element_rect(fill = "grey50"),
+        strip.background.x = element_blank(),
+        strip.text.x = element_blank(),
+        strip.background.y = element_blank(),
+        strip.text.y = element_text(size = rel(1), colour = "black"),
+        title = element_text(size = rel(1)),
+        strip.placement = "outside",
+        legend.text = element_text(size = size_legend)))
+
+night_color <- "black"
+drought_color <- "pink"
+
+seven_color <- 
+  colorRampPalette(c("skyblue", "white", "#f39800"))(6)
+
+
+gradient_color_low <- "skyblue"
+gradient_color_mid <- "white"
+gradient_color_high <- "#f39800"
+scale_color_manual <-
+  function(...){
+    list(
+        scale_color_gradient2(low = gradient_color_low, mid = gradient_color_mid, high = gradient_color_high, midpoint = 4.5, labels = c("lower leaves", rep("", 4), "upper leaves"), guide = guide_colorbar(title = "", ticks = F, frame.colour = "black", ticks.colour = "black")))
+  }
+
+scale_color_manual2 <-
+  function(...){
+    list(
+      scale_color_gradient2(low = gradient_color_low, mid = gradient_color_mid, high = gradient_color_high, midpoint = 4.5, labels = c("lower leaves", rep("", 4), "upper leaves"), guide = guide_colorbar(title = "", ticks = F, frame.colour = "black", ticks.colour = "black")),
+      theme(legend.justification = c(1, 0),
+            legend.position = c(.95, .05),
+            legend.background = element_blank(),
+            legend.text = element_text(size = size_legend, color = "white"))
+      )
+  }
+
+scale_color_manual3 <-
+  function(...){
+    list(
+      scale_color_gradient2(low = gradient_color_low, mid = gradient_color_mid, high = gradient_color_high, midpoint = 4.5, labels = c("lower leaves", rep("", 4), "upper leaves"), guide = guide_colorbar(title = "", ticks = F, frame.colour = "black", ticks.colour = "black")),
+      theme(legend.justification = c(0, 0),
+            legend.position = c(.05, .05),
+            legend.background = element_blank(),
+            legend.text = element_text(size = size_legend, color = "white"))
+      )
+  }
+```
+
+
+```{r data_fig_loading, eval = eval_fig}
+singles <- read_rds(path = "~/Dropbox/Symp/IHC2018/slide/data/single_figure.rdata")
+multi <- read_rds(path = "~/Dropbox/Symp/IHC2018/slide/data/multi_figure.rdata")
+```
+
+
+```{r}
+knit_print.htmlwidget <- function (widget, ..., options = NULL)
+{
+	file <- basename(tempfile(fileext = ".html"))
+	selfcontained <- if(is.null(rmarkdown::metadata$self_contained)) TRUE else rmarkdown::metadata$self_contained
+	htmlwidgets::saveWidget(widget, file = file, selfcontained = selfcontained)
+	content <- if (selfcontained) {
+		on.exit(unlink(file), add = TRUE)
+		list(srcdoc = paste(readLines(file), collapse = "\n")) 
+	}
+	else {
+		list(src = file)
+	}
+	x <- htmltools::tag("iframe", content)
+	knitr::knit_print(x, options = options, ...)
+}
+```
+
+```{r child=child, eval = T}
+```
+
+```{r eval = F * exists("pitch")}
+raw_figs <- dir("figure", full.names = T)
+raw_imgs <- dir("img", pattern = ".png", full.names = T)
+
+for(file in c(raw_figs, raw_imgs)) tinify(file)
+```

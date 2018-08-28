@@ -1,0 +1,19 @@
+# Layout
+layout : top-left
+
+# Look-and-Feel
+theme : white
+highlight : ir-black
+vertical-center : false
+
+# additinal css theme
+theme-override: assets/css/PITCHME.css
+
+# Behavior
+transition : none
+published : true
+
+# Plugins
+charts : true
+mathjax : TeX-AMS_HTML-full
+footnote : "© 2018 Keach Murakami"
