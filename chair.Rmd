@@ -1,0 +1,73 @@
+---
+title: "Chair_note"
+author: "Keach Murakami"
+date: "8/14/2018"
+output: html_document
+---
+
+# Intro
+
+Good afternoon everyone.
+I'm Keach Murakami from Yamaguchi University Japan and I'll chair this session.
+This is today's final session for symposium thirty-one.
+We have eight speakers for this session.
+Each speaker has 12 mininutes for talk and three minutes for discussion.
+Please be punctual.
+OK, let's get started.
+
+# Announcement?
+
+Before we start, I have a housekeeping announcement.
+
+# Talks
+
+## first speaker
+
+- Prof Yahia Othman, from University of Jordan
+- talking about estimation of leaf area index of orchard with multispectral vegetation indices.
+- ‘Evaluating whether multispectral vegetation indices can estimate leaf area index of pecan orchards’
+
+## second
+
+- Prof Yong Hyeon Kim, from Chonbuk National University, South Korea
+- talking about estimation of chlorophyll content of grafted cucumber.
+‘Estimating chlorophyll content of grafted cucumber seedlings using hyperspectral images’.
+
+## third
+
+- 自分
+
+## fourth
+
+Dr. Carlos Poblete-Echeverría (ぽぶれてぃ), from Stellenbosch University, South Africa
+‘Proximal detection using robotics for vineyard monitoring: A concept’
+
+## fifth
+
+- Prof Yiannis Ampatzidils (あんぱずぃでぃす) from University of Florida, United States, 
+- talking about visual desease detection in grapevine.
+- ‘Vision-based system for detecting grapevine yellow diseases using artificial intelligence’ 
+
+## sixth
+
+- Dr Norhashila Hashim, from University Putra, Malaysia
+- talking about RGB imaging during drying process of sweet potato.
+- ‘RGB imaging for monitoring quality parameters of sweet potato during drying’.
+
+## seventh
+
+- Mr. Julien Sarron, from CIRAD, France,
+- talking about efficiency of machine learning for mango yield estimation.
+‘Is machine learning efficient for mango crop yield estimation when used under heterogeneous conditions’
+
+## eighth
+
+- Ms. Ching Yi Huang, from Chinese Taipei.
+- Her talk is entitled ‘Cybernetic system controlling plant growth factors’.
+
+
+# Closing
+
+That's all for today's session.
+In closing, I'd like to thank all speakers and floor for cooperation.
+Thank you.
