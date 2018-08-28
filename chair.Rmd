@@ -39,12 +39,13 @@ Before we start, I have a housekeeping announcement.
 
 ## fourth
 
-Dr. Carlos Poblete-Echeverría (ぽぶれてぃ), from Stellenbosch University, South Africa
-‘Proximal detection using robotics for vineyard monitoring: A concept’
+- Dr. Carlos Poblete-Echeverría (ぽぶれてぃ), from Stellenbosch University, South Africa
+- talking about machine vision for vineyard.
+- ‘Proximal detection using robotics for vineyard monitoring: A concept’
 
 ## fifth
 
-- Prof Yiannis Ampatzidils (あんぱずぃでぃす) from University of Florida, United States, 
+- Prof Yiannis Ampatzidils (あんぱずぃでぃす), from University of Florida, United States, 
 - talking about visual desease detection in grapevine.
 - ‘Vision-based system for detecting grapevine yellow diseases using artificial intelligence’ 
 
